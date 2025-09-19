@@ -5,6 +5,7 @@ module execute_cycle (
     input  RegWriteE,MemWriteE,JumpE,Jalr,BranchE,ALUSrcE,
     input [2:0] ALUControlE,
     input [1:0] ResultSrcE,
+    input mul_switch,start_mul,
     output [31:0] PCTargetE,WriteDataM,ALUResultM,PCPlus4M,InstrM,
     output [4:0] RdM,
     output RegWriteM,MemWriteM,
@@ -17,12 +18,16 @@ module execute_cycle (
     input Predict_branchE,
     output Eval_branch,
     output Prediction_Correct,
-    output StateUpdateEnable
+    output StateUpdateEnable,
+    output done_mul
 );
 wire [31:0] SrcBE,SrcBE_F;
 wire Takebranch,Zero,Target_sel;
 wire [31:0] ALUResultE;
 wire [31:0] SrcAE,auipcadderout,AuLu_ResultE,PCTargetE_w;
+wire [31:0] SrcAE_alu,SrcBE_alu,SrcAE_mul,SrcBE_mul;
+wire [31:0] mul_res,ALUResultE_pre;
+wire mul_switch,done_mul;
 
 reg [31:0] ALUResultE_r,WriteDataE_r,PCPlus4E_r,InstrE_r,AuLu_ResultE_r;
 reg [4:0] RdE_r;
@@ -30,7 +35,7 @@ reg RegWriteE_r,MemWriteE_r;
 reg [1:0] ResultSrcE_r;
 
 mux2 srcmux(SrcBE,ImmExtE,ALUSrcE,SrcBE_F);
-alu alu_main(SrcAE,SrcBE_F,ALUControlE,ALUResultE,Zero,InstrE[30],InstrE[12]);
+alu alu_main(SrcAE_alu,SrcBE_alu,ALUControlE,ALUResultE_pre,Zero,InstrE[30],InstrE[12]);
 branching_unit bu(ALUResultE[31],Zero,InstrE[14:12],Takebranch);
 adder pctarget(PCE,ImmExtE,PCTargetE_w);
 //auipc and lui
@@ -46,6 +51,11 @@ mux4 forwardb(RD2_E,ResultW,ALUResultM,32'b0,ForwardBE,SrcBE);
 predict_handler ph(Predict_branchE,PCSrcE,BranchE,JumpE,Eval_branch,Target_sel,Prediction_Correct);
 
 mux2 target_selmux(PCTargetE_w,PCPlus4E,Target_sel,PCTargetE);
+
+demux2 mul_mux1(SrcAE,mul_switch,SrcAE_alu,SrcAE_mul);
+demux2 mul_mux2(SrcBE_F,mul_switch,SrcBE_alu,SrcBE_mul);
+multiplier_top mul(clk,start_mul,SrcAE_mul,SrcBE_mul,mul_res,done);
+mux2 mul_alu_mux(ALUResultE_pre,mul_res,mul_switch,ALUResultE);
 assign StateUpdateEnable = BranchE | JumpE;
 assign PCSrcE = ((Takebranch & BranchE) | JumpE);
 

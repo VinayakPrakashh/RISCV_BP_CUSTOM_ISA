@@ -13,7 +13,9 @@ module decode_cycle (
    input FlushE,
    output luauE,
    input Predict_branchD,
-   output Predict_branchE
+   output Predict_branchE,
+   output start_mulE
+
 );
 wire [2:0] ImmSrcD;
 wire [1:0] ResultSrcD;
@@ -34,7 +36,7 @@ reg [4:0] RD_D_r;
 reg [4:0] rs1_addr_E_r,rs2_addr_E_r;
 reg Predict_branchD_r;
  
-controller c(op,funct3,funct7b5,ResultSrcD,MemWriteD,ALUSrcD,RegWriteD,JumpD,jalrD,BranchD,ImmSrcD,ALUControlD);
+controller c(op,funct3,funct7b5,ResultSrcD,MemWriteD,ALUSrcD,RegWriteD,JumpD,jalrD,BranchD,ImmSrcD,ALUControlD,start_mul);
 imm_extend imm( InstrD[31:7], ImmSrcD,ImmExtD);
 
 assign Rs1D = InstrD[19:15];
